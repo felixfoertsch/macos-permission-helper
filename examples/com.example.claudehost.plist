@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Example LaunchAgent for claudehost.
+
+  Install as ~/Library/LaunchAgents/com.example.claudehost.plist, replacing
+  YOUR-USERNAME below, then:
+
+      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.claudehost.plist
+
+  It MUST be a LaunchAgent (per-user, gui domain), not a LaunchDaemon: TCC
+  grants are per-user, and the broker spawns the target as your user.
+
+  --target and --requirement default to Claude Code (~/.local/bin/claude and
+  Anthropic's designated requirement), so both lines can be dropped for the
+  default case. They are shown here because they are the only supported way to
+  point the broker at a different binary — the target is never taken from a
+  caller.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.example.claudehost</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Applications/ClaudeHost.app/Contents/MacOS/claudehost</string>
+		<string>--claudehost-serve</string>
+		<string>--target</string>
+		<string>/Users/YOUR-USERNAME/.local/bin/claude</string>
+		<string>--requirement</string>
+		<string>identifier "com.anthropic.claude-code" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] and certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = Q6L2SF6YDW</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/Users/YOUR-USERNAME/Library/Logs/com.example.claudehost.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/YOUR-USERNAME/Library/Logs/com.example.claudehost.err.log</string>
+</dict>
+</plist>
