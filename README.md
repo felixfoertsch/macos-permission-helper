@@ -165,9 +165,11 @@ target `~/.local/bin/claude`, Anthropic's designated requirement for
 
 To broker something other than Claude Code, read the requirement off the
 binary with `codesign -d -r- <path>` (take the text after `designated => `) and
-pass it to `--target` and `--requirement` in the plist. Client-side, `CLAUDEHOST_SOCKET` selects the
-socket and `CLAUDEHOST_TARGET` sets the binary used for the direct-exec
-fallback; both default to match the server defaults.
+pass it to `--target` and `--requirement` in the plist. Two environment
+variables are read by both sides: `CLAUDEHOST_SOCKET` selects the socket, and
+`CLAUDEHOST_TARGET` sets the binary the client direct-execs when it falls back.
+On the server they supply the defaults for `--socket` and `--target`, so an
+explicit flag in the plist beats whatever environment launchd hands the agent.
 
 The client passes argv, environment, cwd, and its real stdio file descriptors
 (over `SCM_RIGHTS`), so pipes, redirection, and PTYs work unchanged. Exit codes
@@ -176,8 +178,8 @@ to the child's process group, so `timeout`/`gtimeout` behave normally. If the
 client dies without cleanup, the server terminates the child tree.
 
 Client exit codes: the child's exit status, or `95` if the server refused
-(verification or spawn failure), `96` on protocol error, `97` if the server
-vanished mid-run.
+(verification or spawn failure), `96` on protocol error, `97` if the broker was
+unreachable or vanished mid-run, or the direct-exec fallback itself failed.
 
 Logs go to stderr, which the example plist routes to
 `~/Library/Logs/com.example.claudehost.err.log`. Signature verification results
@@ -209,9 +211,9 @@ what needs the grant, interactive re-granting does not even solve it.
 ## Status
 
 Built for and running in production on the author's machines, where it brokers
-every scheduled and interactive Claude Code invocation. The behaviors described
-above (exit codes, stdio passthrough, signal forwarding, orphan reaping,
-signature refusal, verification caching) are covered by manual tests; there is
-no test suite. The interface may change. Issues and patches welcome.
+the scheduled Claude Code fleet and remote-control sessions. The behaviors
+described above (exit codes, stdio passthrough, signal forwarding, orphan
+reaping, signature refusal, verification caching) are covered by manual tests;
+there is no test suite. The interface may change. Issues and patches welcome.
 
 MIT licensed.
