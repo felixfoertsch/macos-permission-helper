@@ -17,6 +17,16 @@ static nw_browser_t localNetworkBrowser;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
 	(void)notification;
+	NSMenu *menuBar = [[NSMenu alloc] init];
+	NSMenuItem *appMenuItem = [[NSMenuItem alloc] init];
+	[menuBar addItem:appMenuItem];
+	NSMenu *appMenu = [[NSMenu alloc] initWithTitle:@"macOS Permission Helper"];
+	[appMenu addItemWithTitle:@"About macOS Permission Helper" action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+	[appMenu addItem:[NSMenuItem separatorItem]];
+	[appMenu addItemWithTitle:@"Quit macOS Permission Helper" action:@selector(terminate:) keyEquivalent:@"q"];
+	appMenuItem.submenu = appMenu;
+	NSApp.mainMenu = menuBar;
+
 	self.statuses = [NSMutableDictionary dictionary];
 	self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 620, 430)
 		styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
@@ -101,12 +111,14 @@ static nw_browser_t localNetworkBrowser;
 	nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DISABLE_PROTOCOL, NW_PARAMETERS_DEFAULT_CONFIGURATION);
 	nw_browse_descriptor_t descriptor = nw_browse_descriptor_create_bonjour_service("_ssh._tcp", NULL);
 	localNetworkBrowser = nw_browser_create(descriptor, parameters);
+	self.statuses[@"local"].stringValue = @"Checking…";
 	nw_browser_set_queue(localNetworkBrowser, dispatch_get_main_queue());
 	nw_browser_set_state_changed_handler(localNetworkBrowser, ^(nw_browser_state_t state, nw_error_t error) {
-		(void)error;
-		if (state == nw_browser_state_ready) self.statuses[@"local"].stringValue = @"Granted";
-		if (state == nw_browser_state_failed || state == nw_browser_state_waiting)
-			self.statuses[@"local"].stringValue = @"Not granted";
+		if (state == nw_browser_state_ready) self.statuses[@"local"].stringValue = @"Browser ready";
+		if (state == nw_browser_state_failed || state == nw_browser_state_waiting) {
+			BOOL denied = error && nw_error_get_error_domain(error) == nw_error_domain_dns && nw_error_get_error_code(error) == -65570;
+			self.statuses[@"local"].stringValue = denied ? @"Policy denied" : @"Unavailable";
+		}
 	});
 	nw_browser_start(localNetworkBrowser);
 }
