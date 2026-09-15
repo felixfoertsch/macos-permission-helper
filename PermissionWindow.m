@@ -4,6 +4,22 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <EventKit/EventKit.h>
+#import <dns_sd.h>
+
+static DNSServiceRef localNetworkBrowser;
+
+static void localNetworkBrowseCallback(DNSServiceRef service, DNSServiceFlags flags,
+	uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *serviceName,
+	const char *regtype, const char *replyDomain, void *context) {
+	(void)service;
+	(void)flags;
+	(void)interfaceIndex;
+	(void)errorCode;
+	(void)serviceName;
+	(void)regtype;
+	(void)replyDomain;
+	(void)context;
+}
 
 @interface PermissionAppDelegate : NSObject <NSApplicationDelegate>
 @property(strong) NSWindow *window;
@@ -76,19 +92,37 @@
 	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:url]];
 }
 
+- (void)showInstructions:(NSString *)text {
+	NSAlert *alert = [[NSAlert alloc] init];
+	alert.messageText = @"Manual approval required";
+	alert.informativeText = text;
+	[alert addButtonWithTitle:@"Open System Settings"];
+	[alert addButtonWithTitle:@"Cancel"];
+	if ([alert runModal] == NSAlertFirstButtonReturn) {
+		[self openSettings:@"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"];
+	}
+}
+
 - (void)openFullDiskAccess:(id)sender {
 	(void)sender;
-	[self openSettings:@"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"];
+	[self showInstructions:@"Full Disk Access has no request API. In System Settings, click +, choose /Applications/MacOSPermissionHelper.app, then enable its switch."];
 }
 
 - (void)requestLocalNetwork:(id)sender {
 	(void)sender;
-	dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-		NSURL *url = [NSURL URLWithString:@"http://192.168.23.1/"];
-		NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url];
-		[task resume];
-	});
-	[self openSettings:@"x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"];
+	if (localNetworkBrowser) {
+		DNSServiceRefDeallocate(localNetworkBrowser);
+		localNetworkBrowser = NULL;
+	}
+	DNSServiceErrorType error = DNSServiceBrowse(&localNetworkBrowser, 0, 0,
+		"_ssh._tcp", "local.", localNetworkBrowseCallback, NULL);
+	if (error == kDNSServiceErr_NoError) {
+		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+			DNSServiceProcessResult(localNetworkBrowser);
+		});
+	} else {
+		[self openSettings:@"x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"];
+	}
 }
 
 - (void)requestReminders:(id)sender {

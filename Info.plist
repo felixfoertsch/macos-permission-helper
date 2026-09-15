@@ -18,6 +18,10 @@
 	<string>Allow OpenCode tools to manage reminders through this stable helper identity.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Allow OpenCode tools to reach devices and services on your local network.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ssh._tcp</string>
+	</array>
 	<key>LSUIElement</key>
 	<false/>
 </dict>
