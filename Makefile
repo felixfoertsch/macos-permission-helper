@@ -10,7 +10,7 @@ LIBS    := -framework Security -framework CoreFoundation
 $(BIN): claudehost.c PermissionWindow.m PermissionWindow.h Info.plist
 	mkdir -p $(APP)/Contents/MacOS
 	cp Info.plist $(APP)/Contents/Info.plist
-	clang $(CFLAGS) -x objective-c claudehost.c PermissionWindow.m -o $(BIN) $(LIBS) -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework EventKit
+	clang $(CFLAGS) -x objective-c claudehost.c PermissionWindow.m -o $(BIN) $(LIBS) -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework EventKit -framework Network
 	codesign --force --sign "$(SIGN_ID)" $(APP)
 	@echo "Built + signed ($(SIGN_ID)) $(APP)"
 

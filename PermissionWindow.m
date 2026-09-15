@@ -4,22 +4,9 @@
 #import <ApplicationServices/ApplicationServices.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <EventKit/EventKit.h>
-#import <dns_sd.h>
+#import <Network/Network.h>
 
-static DNSServiceRef localNetworkBrowser;
-
-static void localNetworkBrowseCallback(DNSServiceRef service, DNSServiceFlags flags,
-	uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *serviceName,
-	const char *regtype, const char *replyDomain, void *context) {
-	(void)service;
-	(void)flags;
-	(void)interfaceIndex;
-	(void)errorCode;
-	(void)serviceName;
-	(void)regtype;
-	(void)replyDomain;
-	(void)context;
-}
+static nw_browser_t localNetworkBrowser;
 
 @interface PermissionAppDelegate : NSObject <NSApplicationDelegate>
 @property(strong) NSWindow *window;
@@ -110,19 +97,18 @@ static void localNetworkBrowseCallback(DNSServiceRef service, DNSServiceFlags fl
 
 - (void)requestLocalNetwork:(id)sender {
 	(void)sender;
-	if (localNetworkBrowser) {
-		DNSServiceRefDeallocate(localNetworkBrowser);
-		localNetworkBrowser = NULL;
-	}
-	DNSServiceErrorType error = DNSServiceBrowse(&localNetworkBrowser, 0, 0,
-		"_ssh._tcp", "local.", localNetworkBrowseCallback, NULL);
-	if (error == kDNSServiceErr_NoError) {
-		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-			DNSServiceProcessResult(localNetworkBrowser);
-		});
-	} else {
-		[self openSettings:@"x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"];
-	}
+	if (localNetworkBrowser) nw_browser_cancel(localNetworkBrowser);
+	nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DISABLE_PROTOCOL, NW_PARAMETERS_DEFAULT_CONFIGURATION);
+	nw_browse_descriptor_t descriptor = nw_browse_descriptor_create_bonjour_service("_ssh._tcp", NULL);
+	localNetworkBrowser = nw_browser_create(descriptor, parameters);
+	nw_browser_set_queue(localNetworkBrowser, dispatch_get_main_queue());
+	nw_browser_set_state_changed_handler(localNetworkBrowser, ^(nw_browser_state_t state, nw_error_t error) {
+		(void)error;
+		if (state == nw_browser_state_ready) self.statuses[@"local"].stringValue = @"Granted";
+		if (state == nw_browser_state_failed || state == nw_browser_state_waiting)
+			self.statuses[@"local"].stringValue = @"Not granted";
+	});
+	nw_browser_start(localNetworkBrowser);
 }
 
 - (void)requestReminders:(id)sender {
