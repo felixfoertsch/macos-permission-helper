@@ -2,14 +2,23 @@
 
 APP     := build/MacOSPermissionHelper.app
 BIN     := $(APP)/Contents/MacOS/macos-permission-helper
+ICON    := $(APP)/Contents/Resources/AppIcon.icns
 DEST    := /Applications/MacOSPermissionHelper.app
 SIGN_ID ?= Developer ID Application: Felix Foertsch (NG5W75WE8U)
 CFLAGS  := -O2 -Wall -Wextra
 LIBS    := -framework Security -framework CoreFoundation
 
-$(BIN): claudehost.c PermissionWindow.m PermissionWindow.h Info.plist
+$(BIN): claudehost.c PermissionWindow.m PermissionWindow.h Info.plist Assets/AppIcon.svg
 	mkdir -p $(APP)/Contents/MacOS
 	cp Info.plist $(APP)/Contents/Info.plist
+	rm -rf build/AppIcon.iconset
+	mkdir -p build/AppIcon.iconset $(APP)/Contents/Resources
+	for size in 16 32 128 256 512; do \
+		magick -background none Assets/AppIcon.svg -resize "$${size}x$${size}" "build/AppIcon.iconset/icon_$${size}x$${size}.png"; \
+		double=$$((size * 2)); \
+		magick -background none Assets/AppIcon.svg -resize "$${double}x$${double}" "build/AppIcon.iconset/icon_$${size}x$${size}@2x.png"; \
+	done
+	iconutil --convert icns --output $(ICON) build/AppIcon.iconset
 	clang $(CFLAGS) -x objective-c claudehost.c PermissionWindow.m -o $(BIN) $(LIBS) -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework EventKit -framework Network
 	codesign --force --sign "$(SIGN_ID)" $(APP)
 	@echo "Built + signed ($(SIGN_ID)) $(APP)"
