@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.claudehost</string>
+	<string>de.felixfoertsch.macos-permission-helper</string>
 	<key>CFBundleName</key>
-	<string>ClaudeHost</string>
+	<string>macOS Permission Helper</string>
 	<key>CFBundleExecutable</key>
-	<string>claudehost</string>
+	<string>macos-permission-helper</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

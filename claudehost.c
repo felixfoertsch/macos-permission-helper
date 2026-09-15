@@ -71,12 +71,12 @@ extern char **environ;
  * the shipping binary (codesign -d -r-). The bracketed OIDs are the Developer
  * ID intermediate + leaf marker extensions. */
 static const char *kDefaultRequirement =
-    "identifier \"com.anthropic.claude-code\" and anchor apple generic and "
+    "identifier opencode and anchor apple generic and "
     "certificate 1[field.1.2.840.113635.100.6.2.6] and "
     "certificate leaf[field.1.2.840.113635.100.6.1.13] and "
-    "certificate leaf[subject.OU] = Q6L2SF6YDW";
+    "certificate leaf[subject.OU] = \"5NZ4Q7NXJ4\"";
 
-#define DEFAULT_TARGET_REL ".local/bin/claude"
+#define DEFAULT_TARGET_REL ".local/bin/opencode2"
 
 /* Set once at startup; never from a client request. */
 static const char *g_requirement = NULL;
@@ -98,7 +98,7 @@ static void sock_path(const char *override, char *buf, size_t n) {
     else if (env && *env) snprintf(buf, n, "%s", env);
     else
         snprintf(buf, n,
-                 "%s/Library/Application Support/ClaudeHost/claudehost.sock",
+                 "%s/Library/Application Support/macOS Permission Helper/opencode2.sock",
                  home_dir());
 }
 
@@ -485,7 +485,7 @@ static void fallback_exec(int argc, char **argv, const char *reason) {
         exit(97);
     }
     fprintf(stderr,
-            "claudehost: WARNING: %s - exec'ing %s DIRECTLY (no ClaudeHost TCC "
+            "claudehost: WARNING: %s - exec'ing %s DIRECTLY (no helper TCC "
             "grants for this run)\n",
             reason, path);
     char **av = calloc((size_t)argc + 1, sizeof(char *));

@@ -1,13 +1,13 @@
-# claudehost
+# macOS Permission Helper
 
-A small macOS broker that gives a headless CLI a durable TCC identity. It runs
+A small macOS broker that gives OpenCode2 a durable TCC identity. It runs
 as a launchd agent out of a stable app bundle, and spawns one signature-verified
 target binary on request. Permissions you grant to the bundle once (Full Disk
 Access, Screen Recording, Accessibility) then apply to every run of that target,
 including runs started from cron, launchd, or an ssh session.
 
-It was written for Claude Code, which is the default target, but the target path
-and the code-signing requirement it must satisfy are both configurable.
+This fork defaults to OpenCode2 and verifies OpenCode's Developer ID signature.
+The target path and code-signing requirement remain configurable.
 
 ## The problem
 
@@ -85,24 +85,25 @@ the status quo ante rather than a new hazard.
 Requires macOS and the command line developer tools. No other dependencies.
 
 ```
-git clone https://github.com/jaidhyani/claudehost
-cd claudehost
-make                # builds and ad-hoc signs build/ClaudeHost.app
-make install        # ditto to /Applications/ClaudeHost.app
+git clone https://github.com/felixfoertsch/macos-permission-helper
+cd macos-permission-helper
+make                # signs with Felix's stable Developer ID by default
+make install        # installs /Applications/MacOSPermissionHelper.app
 ```
 
 Confirm the target verifies before going further:
 
 ```
-/Applications/ClaudeHost.app/Contents/MacOS/claudehost \
-  --claudehost-check "$(readlink -f ~/.local/bin/claude)"
+/Applications/MacOSPermissionHelper.app/Contents/MacOS/macos-permission-helper \
+  --claudehost-check "$(readlink ~/.local/bin/opencode2)"
 ```
 
-Install the agent. Copy `examples/com.example.claudehost.plist` to
-`~/Library/LaunchAgents/`, replace `YOUR-USERNAME`, then:
+Install the agent. Copy
+`examples/de.felixfoertsch.macos-permission-helper.plist` to
+`~/Library/LaunchAgents/`, then:
 
 ```
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.claudehost.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/de.felixfoertsch.macos-permission-helper.plist
 ```
 
 It has to be a LaunchAgent in the gui domain, not a LaunchDaemon: TCC grants are

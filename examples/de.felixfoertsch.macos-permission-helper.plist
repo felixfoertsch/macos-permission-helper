@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>de.felixfoertsch.macos-permission-helper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Applications/MacOSPermissionHelper.app/Contents/MacOS/macos-permission-helper</string>
+		<string>--claudehost-serve</string>
+		<string>--target</string>
+		<string>/Users/felixfoertsch/.local/bin/opencode2</string>
+		<string>--requirement</string>
+		<string>identifier opencode and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] and certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = &quot;5NZ4Q7NXJ4&quot;</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/Users/felixfoertsch/Library/Logs/de.felixfoertsch.macos-permission-helper.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/felixfoertsch/Library/Logs/de.felixfoertsch.macos-permission-helper.err.log</string>
+</dict>
+</plist>
