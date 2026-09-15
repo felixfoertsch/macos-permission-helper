@@ -11,6 +11,7 @@ static nw_browser_t localNetworkBrowser;
 @interface PermissionAppDelegate : NSObject <NSApplicationDelegate>
 @property(strong) NSWindow *window;
 @property(strong) NSMutableDictionary<NSString *, NSTextField *> *statuses;
+@property(strong) NSMutableDictionary<NSString *, NSView *> *indicators;
 @end
 
 @implementation PermissionAppDelegate
@@ -28,6 +29,7 @@ static nw_browser_t localNetworkBrowser;
 	NSApp.mainMenu = menuBar;
 
 	self.statuses = [NSMutableDictionary dictionary];
+	self.indicators = [NSMutableDictionary dictionary];
 	self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 620, 430)
 		styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
 		backing:NSBackingStoreBuffered defer:NO];
@@ -68,21 +70,32 @@ static nw_browser_t localNetworkBrowser;
 	NSStackView *row = [NSStackView stackViewWithViews:@[]];
 	row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
 	row.spacing = 12;
+	NSView *indicator = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 8, 8)];
+	indicator.wantsLayer = YES;
+	indicator.layer.cornerRadius = 4;
 	NSTextField *label = [NSTextField labelWithString:name];
 	label.font = [NSFont systemFontOfSize:13 weight:NSFontWeightMedium];
-	[label setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
 	NSTextField *status = [NSTextField labelWithString:@"Unknown"];
-	status.alignment = NSTextAlignmentRight;
-	status.frame = NSMakeRect(0, 0, 110, 22);
+	status.alignment = NSTextAlignmentLeft;
 	NSButton *button = [NSButton buttonWithTitle:@"Grant…" target:self action:action];
+	[row addArrangedSubview:indicator];
 	[row addArrangedSubview:label];
 	[row addArrangedSubview:status];
 	[row addArrangedSubview:button];
 	self.statuses[key] = status;
+	self.indicators[key] = indicator;
 	[stack addArrangedSubview:row];
 	[row.widthAnchor constraintEqualToAnchor:stack.widthAnchor constant:-48].active = YES;
-	[status.widthAnchor constraintEqualToConstant:110].active = YES;
+	[indicator.widthAnchor constraintEqualToConstant:8].active = YES;
+	[indicator.heightAnchor constraintEqualToConstant:8].active = YES;
+	[label.widthAnchor constraintEqualToConstant:245].active = YES;
+	[status.widthAnchor constraintEqualToConstant:125].active = YES;
 	[button.widthAnchor constraintEqualToConstant:90].active = YES;
+}
+
+- (void)setStatus:(NSString *)status color:(NSColor *)color key:(NSString *)key {
+	self.statuses[key].stringValue = status;
+	self.indicators[key].layer.backgroundColor = color.CGColor;
 }
 
 - (void)openSettings:(NSString *)url {
@@ -111,13 +124,13 @@ static nw_browser_t localNetworkBrowser;
 	nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DISABLE_PROTOCOL, NW_PARAMETERS_DEFAULT_CONFIGURATION);
 	nw_browse_descriptor_t descriptor = nw_browse_descriptor_create_bonjour_service("_ssh._tcp", NULL);
 	localNetworkBrowser = nw_browser_create(descriptor, parameters);
-	self.statuses[@"local"].stringValue = @"Checking…";
+	[self setStatus:@"Checking…" color:NSColor.systemYellowColor key:@"local"];
 	nw_browser_set_queue(localNetworkBrowser, dispatch_get_main_queue());
 	nw_browser_set_state_changed_handler(localNetworkBrowser, ^(nw_browser_state_t state, nw_error_t error) {
-		if (state == nw_browser_state_ready) self.statuses[@"local"].stringValue = @"Browser ready";
+		if (state == nw_browser_state_ready) [self setStatus:@"Available" color:NSColor.systemGreenColor key:@"local"];
 		if (state == nw_browser_state_failed || state == nw_browser_state_waiting) {
 			BOOL denied = error && nw_error_get_error_domain(error) == nw_error_domain_dns && nw_error_get_error_code(error) == -65570;
-			self.statuses[@"local"].stringValue = denied ? @"Policy denied" : @"Unavailable";
+			[self setStatus:(denied ? @"Policy denied" : @"Unclear") color:(denied ? NSColor.systemRedColor : NSColor.systemYellowColor) key:@"local"];
 		}
 	});
 	nw_browser_start(localNetworkBrowser);
@@ -129,7 +142,7 @@ static nw_browser_t localNetworkBrowser;
 	[store requestFullAccessToRemindersWithCompletion:^(BOOL granted, NSError *error) {
 		(void)error;
 		dispatch_async(dispatch_get_main_queue(), ^{
-			self.statuses[@"reminders"].stringValue = granted ? @"Granted" : @"Not granted";
+			[self setStatus:(granted ? @"Granted" : @"Not granted") color:(granted ? NSColor.systemGreenColor : NSColor.systemRedColor) key:@"reminders"];
 		});
 	}];
 }
@@ -147,12 +160,15 @@ static nw_browser_t localNetworkBrowser;
 
 - (void)refresh:(id)sender {
 	(void)sender;
-	self.statuses[@"fda"].stringValue = @"Check Settings";
-	self.statuses[@"local"].stringValue = @"Check Settings";
+	[self setStatus:@"Check Settings" color:NSColor.systemYellowColor key:@"fda"];
+	[self setStatus:@"Not checked" color:NSColor.systemYellowColor key:@"local"];
 	EKAuthorizationStatus reminders = [EKEventStore authorizationStatusForEntityType:EKEntityTypeReminder];
-	self.statuses[@"reminders"].stringValue = reminders == EKAuthorizationStatusFullAccess ? @"Granted" : @"Not granted";
-	self.statuses[@"accessibility"].stringValue = AXIsProcessTrusted() ? @"Granted" : @"Not granted";
-	self.statuses[@"screen"].stringValue = CGPreflightScreenCaptureAccess() ? @"Granted" : @"Not granted";
+	BOOL remindersGranted = reminders == EKAuthorizationStatusFullAccess;
+	[self setStatus:(remindersGranted ? @"Granted" : @"Not granted") color:(remindersGranted ? NSColor.systemGreenColor : NSColor.systemRedColor) key:@"reminders"];
+	BOOL accessibility = AXIsProcessTrusted();
+	[self setStatus:(accessibility ? @"Granted" : @"Not granted") color:(accessibility ? NSColor.systemGreenColor : NSColor.systemRedColor) key:@"accessibility"];
+	BOOL screen = CGPreflightScreenCaptureAccess();
+	[self setStatus:(screen ? @"Granted" : @"Not granted") color:(screen ? NSColor.systemGreenColor : NSColor.systemRedColor) key:@"screen"];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
