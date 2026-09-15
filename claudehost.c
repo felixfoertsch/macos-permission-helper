@@ -61,6 +61,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
+#include "PermissionWindow.h"
+
 extern char **environ;
 
 #define MAGIC 0x434C4831u /* "CLH1" */
@@ -599,6 +601,9 @@ static const char *opt_val(int argc, char **argv, int *i, const char *name) {
 
 int main(int argc, char **argv) {
     g_requirement = kDefaultRequirement;
+
+    if (argc == 1 || (argc == 2 && strcmp(argv[1], "--permissions") == 0))
+        return run_permission_window();
 
     if (argc >= 2 && strcmp(argv[1], "--claudehost-serve") == 0) {
         const char *sock = NULL, *target = NULL;

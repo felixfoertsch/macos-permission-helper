@@ -80,6 +80,14 @@ not promised anywhere, and no better primitive is exposed. If a future macOS
 changes attribution, the failure mode is grants stopping working again, which is
 the status quo ante rather than a new hazard.
 
+## Permission setup
+
+Open `/Applications/MacOSPermissionHelper.app`, then use each **Grant…** button
+for Full Disk Access, Local Network, Reminders, Accessibility, and Screen &
+System Audio Recording. macOS requires user approval in its prompt or System
+Settings; the helper reports public permission status where macOS provides it.
+Restart the helper and OpenCode services after changing grants.
+
 ## Quickstart
 
 Requires macOS and the command line developer tools. No other dependencies.

@@ -7,10 +7,10 @@ SIGN_ID ?= Developer ID Application: Felix Foertsch (NG5W75WE8U)
 CFLAGS  := -O2 -Wall -Wextra
 LIBS    := -framework Security -framework CoreFoundation
 
-$(BIN): claudehost.c Info.plist
+$(BIN): claudehost.c PermissionWindow.m PermissionWindow.h Info.plist
 	mkdir -p $(APP)/Contents/MacOS
 	cp Info.plist $(APP)/Contents/Info.plist
-	cc $(CFLAGS) claudehost.c -o $(BIN) $(LIBS)
+	clang $(CFLAGS) -x objective-c claudehost.c PermissionWindow.m -o $(BIN) $(LIBS) -framework AppKit -framework ApplicationServices -framework CoreGraphics -framework EventKit
 	codesign --force --sign "$(SIGN_ID)" $(APP)
 	@echo "Built + signed ($(SIGN_ID)) $(APP)"
 

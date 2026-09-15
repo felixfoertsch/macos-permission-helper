@@ -14,7 +14,11 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Allow OpenCode tools to manage reminders through this stable helper identity.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow OpenCode tools to reach devices and services on your local network.</string>
 	<key>LSUIElement</key>
-	<true/>
+	<false/>
 </dict>
 </plist>
