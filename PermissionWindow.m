@@ -5,8 +5,10 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <EventKit/EventKit.h>
 #import <Network/Network.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-static nw_browser_t localNetworkBrowser;
+static nw_connection_t localNetworkConnection;
 
 @interface PermissionAppDelegate : NSObject <NSApplicationDelegate>
 @property(strong) NSWindow *window;
@@ -120,20 +122,38 @@ static nw_browser_t localNetworkBrowser;
 
 - (void)requestLocalNetwork:(id)sender {
 	(void)sender;
-	if (localNetworkBrowser) nw_browser_cancel(localNetworkBrowser);
+	if (localNetworkConnection) nw_connection_cancel(localNetworkConnection);
+	nw_endpoint_t endpoint = nw_endpoint_create_host("192.168.23.20", "22872");
 	nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DISABLE_PROTOCOL, NW_PARAMETERS_DEFAULT_CONFIGURATION);
-	nw_browse_descriptor_t descriptor = nw_browse_descriptor_create_bonjour_service("_ssh._tcp", NULL);
-	localNetworkBrowser = nw_browser_create(descriptor, parameters);
+	localNetworkConnection = nw_connection_create(endpoint, parameters);
 	[self setStatus:@"Checking…" color:NSColor.systemYellowColor key:@"local"];
-	nw_browser_set_queue(localNetworkBrowser, dispatch_get_main_queue());
-	nw_browser_set_state_changed_handler(localNetworkBrowser, ^(nw_browser_state_t state, nw_error_t error) {
-		if (state == nw_browser_state_ready) [self setStatus:@"Available" color:NSColor.systemGreenColor key:@"local"];
-		if (state == nw_browser_state_failed || state == nw_browser_state_waiting) {
-			BOOL denied = error && nw_error_get_error_domain(error) == nw_error_domain_dns && nw_error_get_error_code(error) == -65570;
+	nw_connection_set_queue(localNetworkConnection, dispatch_get_main_queue());
+	nw_connection_set_state_changed_handler(localNetworkConnection, ^(nw_connection_state_t state, nw_error_t error) {
+		if (state == nw_connection_state_ready) {
+			[self setStatus:@"Access verified" color:NSColor.systemGreenColor key:@"local"];
+			nw_connection_cancel(localNetworkConnection);
+		}
+		if (state == nw_connection_state_failed || state == nw_connection_state_waiting) {
+			nw_path_t path = nw_connection_copy_current_path(localNetworkConnection);
+			BOOL denied = path && nw_path_get_unsatisfied_reason(path) == nw_path_unsatisfied_reason_local_network_denied;
+			(void)error;
 			[self setStatus:(denied ? @"Policy denied" : @"Unclear") color:(denied ? NSColor.systemRedColor : NSColor.systemYellowColor) key:@"local"];
 		}
 	});
-	nw_browser_start(localNetworkBrowser);
+	nw_connection_start(localNetworkConnection);
+}
+
+- (void)checkFullDiskAccess {
+	NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Mail"];
+	int fd = open(path.fileSystemRepresentation, O_RDONLY | O_DIRECTORY);
+	if (fd >= 0) {
+		close(fd);
+		[self setStatus:@"Access verified" color:NSColor.systemGreenColor key:@"fda"];
+	} else if (errno == EACCES || errno == EPERM) {
+		[self setStatus:@"Not granted" color:NSColor.systemRedColor key:@"fda"];
+	} else {
+		[self setStatus:@"Unclear" color:NSColor.systemYellowColor key:@"fda"];
+	}
 }
 
 - (void)requestReminders:(id)sender {
@@ -160,8 +180,8 @@ static nw_browser_t localNetworkBrowser;
 
 - (void)refresh:(id)sender {
 	(void)sender;
-	[self setStatus:@"Check Settings" color:NSColor.systemYellowColor key:@"fda"];
-	[self setStatus:@"Not checked" color:NSColor.systemYellowColor key:@"local"];
+	[self checkFullDiskAccess];
+	[self requestLocalNetwork:nil];
 	EKAuthorizationStatus reminders = [EKEventStore authorizationStatusForEntityType:EKEntityTypeReminder];
 	BOOL remindersGranted = reminders == EKAuthorizationStatusFullAccess;
 	[self setStatus:(remindersGranted ? @"Granted" : @"Not granted") color:(remindersGranted ? NSColor.systemGreenColor : NSColor.systemRedColor) key:@"reminders"];
